@@ -2,10 +2,10 @@ python3.10 -m venv venv
 
 source venv/bin/activate
 
-pip install Flask
-pip install flask-cors
+python3.10 -m pip install Flask
+python3.10 -m pip install flask-cors
 
-pip freeze > requirements.txt
+python3.10 -m pip freeze > requirements.txt
 
 touch app.py
 

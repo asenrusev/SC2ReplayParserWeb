@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { Button, TextField } from '@mui/material';
+const API_URL = process.env.REACT_APP_API_URL;
 
 function App() {
   const [file, setFile] = useState(null);
@@ -16,7 +17,7 @@ function App() {
     formData.append('file', file);
 
     try {
-      const res = await axios.post('http://127.0.0.1:2500/upload', formData, {
+      const res = await axios.post(`${API_URL}/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
