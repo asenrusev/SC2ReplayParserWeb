@@ -3,9 +3,39 @@ import axios from 'axios';
 import { Button, TextField } from '@mui/material';
 const API_URL = process.env.REACT_APP_API_URL;
 
+// when typescript is added
+// interface PlayerStats {
+//   player_id: number;
+//   name: string;
+//   race: string;
+//   is_human: boolean;
+//   team: number;
+//   result: string;
+//   color: string;
+// }
+
+// interface CommandEvent {
+//   ability_name: string;
+//   player: number;
+//   frame: number;
+//   second: number;
+// }
+
+// interface SummarisedData {
+//   map: string;
+//   players: PlayerStats[];
+//   duration: number;
+//   game_type: string;
+//   build: string;
+//   expansion: string;
+//   speed: string;
+//   commands: CommandEvent[];
+// }
+
+
 function App() {
   const [file, setFile] = useState(null);
-  const [response, setResponse] = useState('');
+  const [response, setResponse] = useState();
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
@@ -22,7 +52,7 @@ function App() {
           'Content-Type': 'multipart/form-data',
         },
       });
-      setResponse(res.data.message);
+      setResponse(res.data);
     } catch (err) {
       console.error(err);
     }
@@ -43,7 +73,7 @@ function App() {
           Upload
         </Button>
       </form>
-      {response && <p>{response}</p>}
+      {!!response && <p>Response received: {JSON.stringify(response)}</p>}
     </div>
   );
 }
