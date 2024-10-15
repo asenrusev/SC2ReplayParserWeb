@@ -9,9 +9,6 @@ import {
   Container,
   CssBaseline,
   GlobalStyles,
-  // MenuItem,
-  // Select,
-  // SelectChangeEvent,
   Snackbar,
   ThemeProvider,
   Typography,
@@ -20,39 +17,34 @@ import { SummarisedData } from "./utils/types";
 import { createPrompt, createSummaryInfo } from "./utils/process";
 import { theme } from "./utils/theme";
 const API_URL = process.env.REACT_APP_API_URL;
+const REPLAY_LIMIT_SIZE = 1048576; // 1MB
+const REPLAY_EXTENSION = ".SC2Replay";
 
 function App() {
   const [file, setFile] = useState<File | null>(null);
-  // const [rank, setRank] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [showButtons, setShowButtons] = useState<boolean>(false);
   const [notification, setNotification] = useState<string>("");
   const [summaryInfo, setSummaryInfo] = React.useState<string>();
   const [prompt, setPrompt] = React.useState<string>();
   const [errMsg, setErrMsg] = React.useState<string>();
-  const [response, setResponse] = useState<SummarisedData>();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      // Ensure the file is a Starcraft 2 replay file
-      if (selectedFile.size > 1048576) {
+      if (selectedFile.size > REPLAY_LIMIT_SIZE) {
         setNotification(
           "File size must be less than 1MB. Please upload a smaller file."
         );
-        setFile(null); // Reset the file if it's too large
-      } else if (selectedFile.name.endsWith(".SC2Replay")) {
+        setFile(null);
+      } else if (selectedFile.name.endsWith(REPLAY_EXTENSION)) {
         setFile(selectedFile);
       } else {
         setNotification("Please select a valid Starcraft 2 replay file.");
+        setFile(null);
       }
     }
   };
-
-  //TODO:
-  // const handleRankChange = (event: SelectChangeEvent<{ value: unknown }>) => {
-  //   setRank(event.target.value as string);
-  // };
 
   const handleUpload = async () => {
     if (!file) {
@@ -63,12 +55,27 @@ function App() {
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await axios.post(`${API_URL}/upload`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
-      setResponse(res.data);
+      const res = await axios.post<SummarisedData>(
+        `${API_URL}/upload`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+      if (res.status !== 200) {
+        setErrMsg("Request failed");
+        console.error("Request failed", res);
+        return;
+      }
+      if (res.data.game_type !== "1v1") {
+        setNotification("Not supported");
+        setErrMsg(
+          `Only 1v1 games are supported. This is ${res.data.game_type} game.`
+        );
+        return;
+      }
       setShowButtons(true);
       setNotification("Upload successful!");
       setPrompt(createPrompt(res.data));
@@ -76,8 +83,9 @@ function App() {
     } catch (err) {
       console.error("Backend failed", err);
       setErrMsg("Something went wrong");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleCopySummaryInfo = () => {
@@ -198,24 +206,6 @@ function App() {
         )}
         <br />
 
-        {/* <Select
-        value={{ value: rank }}
-        onChange={handleRankChange}
-        displayEmpty
-        fullWidth
-        style={{ marginBottom: "20px" }}
-      >
-        <MenuItem value="" disabled>
-          Select your rank
-        </MenuItem>
-        <MenuItem value={"Bronze"}>Bronze</MenuItem>
-        <MenuItem value={"Silver"}>Silver</MenuItem>
-        <MenuItem value={"Gold"}>Gold</MenuItem>
-        <MenuItem value={"Platinum"}>Platinum</MenuItem>
-        <MenuItem value={"Diamond"}>Diamond</MenuItem>
-        <MenuItem value={"Master"}>Master</MenuItem>
-        <MenuItem value={"Grandmaster"}>Grandmaster</MenuItem>
-      </Select> */}
         {!!file && (
           <>
             <Button

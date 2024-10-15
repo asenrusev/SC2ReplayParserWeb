@@ -7,24 +7,25 @@ export function createPrompt(data: SummarisedData): string {
   Enemy Units: Based on my opponent's unit composition, what would have been the most effective counters?
   Improvement Steps: Suggest specific strategies or adjustments I can implement to improve my overall gameplay.
 
-  Here’s the summary of the replay:
-  ${createSummaryInfo(data)}`;
+Summary of the replay:
+${createSummaryInfo(data)}`;
 }
 
 export function createSummaryInfo(data: SummarisedData): string {
+  const playersMap: Record<number, string> = data.players.reduce(
+    (prev, curr) => ({ ...prev, [curr.player_id]: curr.name }),
+    {}
+  );
   const commandRows = data.commands
-    .map(
-      (command) =>
-        `At ${formatSeconds(command.second)} player ${command.player} used ${
-          command.ability_name
-        }`
-    )
+    .map((command) => {
+      const timestamp = formatSeconds(command.second);
+      const playerName = playersMap[command.player];
+      const ability = command.ability_name;
+      return `At ${timestamp}, ${playerName} used ${ability}`;
+    })
     .join("\n");
   const playerRows = data.players
-    .map(
-      (player) =>
-        `Player ${player.player_id} is ${player.name} playing as ${player.race}`
-    )
+    .map((player) => `${player.name} as ${player.race} (${player.result})`)
     .join("\n");
   return `Map: ${data.map}\nDuration: ${formatSeconds(
     data.duration
