@@ -153,7 +153,7 @@ function App() {
           }}
         >
           <Typography variant="h1" gutterBottom color="primary">
-            Starcraft 2 Replay Summariser
+            Starcraft 2 Replay Reader
           </Typography>
           <Box marginTop={5}>
             <Card
