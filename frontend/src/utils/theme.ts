@@ -11,7 +11,7 @@ export const theme = createTheme({
     },
     background: {
       default: "#424242", // Custom background color
-      paper: "#212121",
+      paper: "rgba(66, 66, 66, 0.85)",
     },
     text: {
       primary: "#FFE0B2", // Custom text color
