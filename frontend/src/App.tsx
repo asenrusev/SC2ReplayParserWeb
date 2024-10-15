@@ -28,10 +28,10 @@ const BackgroundBox = styled(Box)({
     linear-gradient(135deg, rgb(32, 32, 32), rgb(34, 34, 34)),
     url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="87" viewBox="0 0 100 87"><polygon points="50,0 100,25 100,62 50,87 0,62 0,25" fill="rgb(32, 32, 32)"/></svg>')
   `,
-  backgroundSize: "100px 87px", // Size of the hexagon pattern
-  backgroundRepeat: "repeat", // Repeat the hexagons across the background
-  backgroundBlendMode: "overlay", // Blend the gradient and pattern together
-  minHeight: "100vh", // Full page height
+  backgroundSize: "100px 87px",
+  backgroundRepeat: "repeat",
+  backgroundBlendMode: "overlay",
+  minHeight: "100vh",
   display: "flex",
   justifyContent: "center",
 });
@@ -44,6 +44,7 @@ function App() {
   const [summaryInfo, setSummaryInfo] = React.useState<string>();
   const [prompt, setPrompt] = React.useState<string>();
   const [errMsg, setErrMsg] = React.useState<string>();
+  const [loadingTooMuch, setLoadingTooMuch] = React.useState<boolean>(false);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -69,9 +70,15 @@ function App() {
       return;
     }
     setLoading(true);
+    let loaded = false;
     try {
       const formData = new FormData();
       formData.append("file", file);
+      setTimeout(() => {
+        if (!loaded) {
+          setLoadingTooMuch(true);
+        }
+      }, 5000);
       const res = await axios.post<SummarisedData>(
         `${API_URL}/upload`,
         formData,
@@ -81,6 +88,7 @@ function App() {
           },
         }
       );
+      loaded = true;
       if (res.status !== 200) {
         setErrMsg("Request failed");
         console.error("Request failed", res);
@@ -97,12 +105,14 @@ function App() {
       setNotification("Upload successful!");
       setPrompt(createPrompt(res.data));
       setSummaryInfo(createSummaryInfo(res.data));
+      setErrMsg(undefined);
     } catch (err) {
       setNotification("Unexpected error");
       console.error("Backend failed", err);
       setErrMsg("Something went wrong");
     } finally {
       setLoading(false);
+      setLoadingTooMuch(false);
     }
   };
 
@@ -222,17 +232,29 @@ function App() {
           <br />
 
           {!!file && (
-            <>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleUpload}
-                disabled={loading}
-                style={{ margin: "10px" }}
-              >
-                {loading ? <CircularProgress size={24} /> : "Upload Replay"}
-              </Button>
-            </>
+            <Box>
+              {loading ? (
+                <>
+                  <CircularProgress size={24} />
+                  {loadingTooMuch && (
+                    <>
+                      <Typography variant="subtitle2" color="textPrimary">
+                        Wait, we'll chronoboost the servers
+                      </Typography>
+                    </>
+                  )}
+                </>
+              ) : (
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={handleUpload}
+                  disabled={loading}
+                >
+                  Upload Replay
+                </Button>
+              )}
+            </Box>
           )}
 
           {showButtons && (
