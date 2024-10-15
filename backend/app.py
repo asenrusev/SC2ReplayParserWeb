@@ -10,7 +10,12 @@ CORS(app)  # Enable CORS
 def upload_file():
     file = request.files['file']
     if file:
-        # Load replay data and return as JSON
+        if file.content_length > 1048576: 
+            return jsonify({'error': 'File size exceeds the 1MB limit.'}), 400
+         
+        if not file.filename.endswith('.SC2Replay'):
+            return jsonify({'error': 'Invalid file type. Only .SC2Replay files are allowed.'}), 400
+
         replay_data = extract_replay_data(file)
         return jsonify(summarise_replay_data(replay_data))
     return jsonify({'error': 'No file uploaded'}), 400
