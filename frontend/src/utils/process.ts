@@ -1,6 +1,9 @@
-import { SummarisedData } from "./types";
+import { PlayerStats, SummarisedData } from "./types";
 
-export function createPrompt(data: SummarisedData): string {
+export function createPrompt(
+  data: SummarisedData,
+  playerId: PlayerStats["player_id"]
+): string {
   return `This is a summary of my StarCraft 2 replay. Please analyze it and provide feedback on the following points:
 
   Build Order: Evaluate the effectiveness of my build order. How could I optimize it for better performance?
@@ -8,10 +11,13 @@ export function createPrompt(data: SummarisedData): string {
   Improvement Steps: Suggest specific strategies or adjustments I can implement to improve my overall gameplay.
 
 Summary of the replay:
-${createSummaryInfo(data)}`;
+${createSummaryInfo(data, playerId)}`;
 }
 
-export function createSummaryInfo(data: SummarisedData): string {
+export function createSummaryInfo(
+  data: SummarisedData,
+  playerId: PlayerStats["player_id"]
+): string {
   const playersMap: Record<number, string> = data.players.reduce(
     (prev, curr) => ({ ...prev, [curr.player_id]: curr.name }),
     {}
@@ -25,8 +31,13 @@ export function createSummaryInfo(data: SummarisedData): string {
     })
     .join("\n");
   const playerRows = data.players
-    .map((player) => `${player.name} as ${player.race} (${player.result})`)
+    .map((player) => {
+      const meText = player.player_id === playerId ? "Me: " : "";
+      const aiText = player.is_human ? "(A.I.)" : "";
+      return `${meText}${player.name}${aiText} as ${player.race} (${player.result})`;
+    })
     .join("\n");
+
   return `Map: ${data.map}\nDuration: ${formatSeconds(
     data.duration
   )}\nPlayers:\n${playerRows}\nEvents:\n${commandRows}`;

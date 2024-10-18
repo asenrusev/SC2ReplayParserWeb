@@ -3,48 +3,54 @@ import axios from "axios";
 import {
   Box,
   Button,
-  Card,
-  CardContent,
   CircularProgress,
   Container,
   CssBaseline,
   GlobalStyles,
+  InputLabel,
+  MenuItem,
+  Select,
+  SelectChangeEvent,
   Snackbar,
   ThemeProvider,
   Typography,
 } from "@mui/material";
-import { SummarisedData } from "./utils/types";
+import { PlayerStats, SummarisedData } from "./utils/types";
 import { createPrompt, createSummaryInfo } from "./utils/process";
 import { theme } from "./utils/theme";
-import { styled } from "@mui/system";
+import { useMediaQuery } from "@mui/system";
+import { Header } from "./Header";
 
 const API_URL = process.env.REACT_APP_API_URL;
 const REPLAY_LIMIT_SIZE = 1048576; // 1MB
 const REPLAY_EXTENSION = ".SC2Replay";
 
 // Styled component for the background using Material UI's styled
-const BackgroundBox = styled(Box)({
-  backgroundImage: `
-    linear-gradient(135deg, rgb(32, 32, 32), rgb(34, 34, 34)),
-    url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="87" viewBox="0 0 100 87"><polygon points="50,0 100,25 100,62 50,87 0,62 0,25" fill="rgb(32, 32, 32)"/></svg>')
-  `,
-  backgroundSize: "100px 87px",
-  backgroundRepeat: "repeat",
-  backgroundBlendMode: "overlay",
-  minHeight: "100vh",
-  display: "flex",
-  justifyContent: "center",
-});
+// const BackgroundBox = styled(Box)({
+//   backgroundImage: `
+//     url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="87" viewBox="0 0 100 87"><polygon points="50,0 100,25 100,62 50,87 0,62 0,25" fill="rgb(32, 32, 32)"/></svg>')
+//   `,
+//   backgroundSize: "100px 87px",
+//   backgroundRepeat: "repeat",
+//   backgroundBlendMode: "overlay",
+//   minHeight: "100vh",
+//   display: "flex",
+//   justifyContent: "center",
+// });
 
 function App() {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
-  const [showButtons, setShowButtons] = useState<boolean>(false);
   const [notification, setNotification] = useState<string>("");
   const [summaryInfo, setSummaryInfo] = React.useState<string>();
   const [prompt, setPrompt] = React.useState<string>();
   const [errMsg, setErrMsg] = React.useState<string>();
   const [loadingTooMuch, setLoadingTooMuch] = React.useState<boolean>(false);
+  const [response, setResponse] = React.useState<SummarisedData>();
+  const [selectedPlayer, setSelectedPlayer] =
+    React.useState<PlayerStats["player_id"]>();
+  const isMobile = useMediaQuery("(max-width:768px)");
+  const fileUploadInputRef = React.useRef<HTMLInputElement>(null);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -101,10 +107,8 @@ function App() {
         );
         return;
       }
-      setShowButtons(true);
+      setResponse(res.data);
       setNotification("Upload successful!");
-      setPrompt(createPrompt(res.data));
-      setSummaryInfo(createSummaryInfo(res.data));
       setErrMsg(undefined);
     } catch (err) {
       setNotification("Unexpected error");
@@ -113,6 +117,26 @@ function App() {
     } finally {
       setLoading(false);
       setLoadingTooMuch(false);
+    }
+  };
+
+  const handlePlayerChange = (event: SelectChangeEvent<number>) => {
+    try {
+      if (!response) {
+        return;
+      }
+      if (event.target.value) {
+        const playerId = parseInt(
+          event.target.value as string
+        ) as PlayerStats["player_id"];
+        setSelectedPlayer(playerId);
+        setPrompt(createPrompt(response, playerId));
+        setSummaryInfo(createSummaryInfo(response, playerId));
+      } else {
+        setNotification("No player has been selected");
+      }
+    } catch (err) {
+      console.error("handlePlayerChange", { targetValue: event.target.value });
     }
   };
 
@@ -130,6 +154,18 @@ function App() {
     }
   };
 
+  const handleReset = () => {
+    setSelectedPlayer(undefined);
+    setErrMsg(undefined);
+    setResponse(undefined);
+    setPrompt(undefined);
+    setSummaryInfo(undefined);
+    setFile(null);
+    if (fileUploadInputRef.current?.value) {
+      fileUploadInputRef.current.value = "";
+    }
+  };
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -138,100 +174,128 @@ function App() {
         styles={{
           body: {
             // if you want to switch to single color background this is the place
-            // backgroundColor: theme.palette.background.default,
-            // height: "100vh",
-            // margin: 0,
+            backgroundColor: theme.palette.background.default,
+            height: "100vh",
+            margin: 0,
           },
         }}
       />
-      <BackgroundBox>
+      {/* Header */}
+      {!isMobile && <Header />}
+
+      {/* <BackgroundBox> */}
+      {isMobile ? (
+        // Show warning message if on mobile
+        <Container
+          maxWidth="sm"
+          style={{
+            textAlign: "center",
+            padding: "50px",
+            height: "100vh",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            backgroundColor: theme.palette.background.default,
+          }}
+        >
+          <Typography variant="h5" color="primary">
+            This website works only on desktop.
+          </Typography>
+        </Container>
+      ) : (
         <Container
           maxWidth="lg"
           style={{
             textAlign: "center",
-            marginTop: 100,
+            backgroundColor: theme.palette.background.paper,
+            height: "100vh",
+            padding: 50,
+            paddingTop: 80,
           }}
         >
-          <Typography variant="h1" gutterBottom color="primary">
+          {/* <Typography variant="h1" gutterBottom color="primary" marginTop={15}>
             Starcraft 2 Replay Reader
-          </Typography>
-          <Box marginTop={5}>
-            <Card
-              style={{
-                backgroundColor: theme.palette.background.paper,
-                borderRadius: 16,
-              }}
+          </Typography> */}
+          <Box>
+            <Typography variant="h4" gutterBottom color="textPrimary">
+              Upload your StarCraft 2 replay for a quick game breakdown and
+              generating AI-ready prompts for insights
+            </Typography>
+            <Typography
+              variant="body2"
+              style={{ fontStyle: "italic" }}
+              color="textPrimary"
             >
-              <CardContent>
-                <Typography variant="body1" gutterBottom color="textPrimary">
-                  Upload your StarCraft 2 replay for a quick game breakdown,
-                  generating AI-ready prompts for insights
-                </Typography>
-                <Typography
-                  variant="body2"
-                  style={{ fontStyle: "italic" }}
-                  color="textPrimary"
-                >
-                  Note: the replay format isn't perfect—specific unit movements
-                  and placements are tricky to pinpoint. We focus on your build
-                  order and how your units matched up.
-                </Typography>
-              </CardContent>
-            </Card>
+              Note: the replay format isn't perfect—specific unit movements and
+              placements are tricky to pinpoint. We focus on your build order
+              and how your units matched up.
+            </Typography>
           </Box>
-          <Typography variant="h6" gutterBottom color="secondary" marginTop={5}>
-            Upload your Starcraft 2 replay
-          </Typography>
-          <Typography variant="subtitle2" color="textPrimary">
-            For MacOS, replays are usually located in:
-            <i>
-              <strong>
-                {" "}
-                `~/Library/Application Support/Blizzard/StarCraft II/Accounts/
-                {"{"}YourAccount{"}"}
-                /Replays/Multiplayer`
-              </strong>
-            </i>
-          </Typography>
-          <Typography variant="subtitle2" color="textPrimary">
-            For Windows, replays are usually located in:{" "}
-            <i>
-              <strong>
-                `C:\Users\{"{"}Your Name
-                {"}"}\Documents\StarCraft II\Accounts\{"{"}Your Account{"}"}
-                \Replays\Multiplayer`{" "}
-              </strong>
-            </i>
-          </Typography>
-
-          <input
-            type="file"
-            onChange={handleFileChange}
-            style={{ display: "none" }}
-            id="file-upload"
-          />
-          <label htmlFor="file-upload">
-            <Button
-              variant="contained"
-              component="span"
-              style={{ margin: "10px" }}
-            >
-              Choose Replay File
-            </Button>
-          </label>
-          {!!errMsg && (
-            <Typography color="error" variant="body2">
-              {errMsg}
+          <Box
+            sx={{
+              padding: 5,
+              borderRadius: 16,
+              borderColor: "secondary.main",
+              borderWidth: 1,
+              borderStyle: "solid",
+              marginTop: 5,
+            }}
+          >
+            <Typography variant="h6" gutterBottom color="textPrimary">
+              Select a replay
             </Typography>
-          )}
-          {!!file && (
-            <Typography variant="subtitle2" color="textPrimary">
-              Selected file: "{file?.name}"
+            <Typography variant="subtitle2" color="textDisabled">
+              For MacOS, replays are usually located in:
+              <i>
+                <strong>
+                  {" "}
+                  `~/Library/Application Support/Blizzard/StarCraft II/Accounts/
+                  {"{"}YourAccount{"}"}
+                  /Replays/Multiplayer`
+                </strong>
+              </i>
             </Typography>
-          )}
-          <br />
-
-          {!!file && (
+            <Typography variant="subtitle2" color="textDisabled">
+              For Windows, replays are usually located in:{" "}
+              <i>
+                <strong>
+                  `C:\Users\{"{"}Your Name
+                  {"}"}\Documents\StarCraft II\Accounts\{"{"}Your Account{"}"}
+                  \Replays\Multiplayer`{" "}
+                </strong>
+              </i>
+            </Typography>
+            <input
+              ref={fileUploadInputRef}
+              type="file"
+              onChange={handleFileChange}
+              style={{ display: "none" }}
+              id="file-upload"
+            />
+            <label htmlFor="file-upload">
+              <Button
+                variant={file ? "outlined" : "contained"}
+                component="span"
+                style={{ marginTop: "10px" }}
+                color="secondary"
+              >
+                Choose Replay File
+              </Button>
+            </label>
+            {errMsg ? (
+              <Typography color="error" variant="body2">
+                {errMsg}
+              </Typography>
+            ) : file ? (
+              <Typography variant="subtitle2" color="textDisabled">
+                Selected file: "{file?.name}"
+              </Typography>
+            ) : (
+              <Typography variant="subtitle2" color="textDisabled">
+                No file has been selected
+              </Typography>
+            )}
+            <br />
             <Box>
               {loading ? (
                 <>
@@ -246,36 +310,81 @@ function App() {
                 </>
               ) : (
                 <Button
-                  variant="contained"
-                  color="primary"
+                  variant={response ? "outlined" : "contained"}
+                  color={response ? "secondary" : "primary"}
                   onClick={handleUpload}
-                  disabled={loading}
+                  disabled={loading || !file}
                 >
                   Upload Replay
                 </Button>
               )}
             </Box>
-          )}
+            <Box
+              sx={{
+                marginTop: 4,
+              }}
+            >
+              <InputLabel
+                id="player-select-label"
+                sx={{ color: response ? "text.primary" : "darkgrey" }}
+              >
+                Select your player name:
+              </InputLabel>
+              <Select
+                labelId="player-select-label"
+                value={selectedPlayer ?? -1}
+                onChange={handlePlayerChange}
+                label="Select who are you"
+                disabled={!response}
+                sx={{
+                  color: "primary",
+                  minWidth: 200,
+                  maxHeight: 50,
+                  marginTop: 1,
+                  borderColor: "fff",
+                }}
+              >
+                {response ? (
+                  response.players.map((player) => (
+                    <MenuItem value={player.player_id}>{player.name}</MenuItem>
+                  ))
+                ) : (
+                  <MenuItem value={-1} selected={true} disabled={true}>
+                    Upload Replay
+                  </MenuItem>
+                )}
+              </Select>
+            </Box>
+            <br />
+            <Button
+              variant={summaryInfo ? "contained" : "outlined"}
+              onClick={handleCopySummaryInfo}
+              disabled={!summaryInfo}
+              color="secondary"
+            >
+              Copy Play Summary
+            </Button>
+            <Button
+              variant={selectedPlayer === undefined ? "outlined" : "contained"}
+              onClick={handleCopyPrompt}
+              disabled={selectedPlayer === undefined}
+              color="secondary"
+              sx={{ marginLeft: 3 }}
+            >
+              Copy Prompt
+            </Button>{" "}
+            <br />
+            <Button
+              variant={selectedPlayer === undefined ? "outlined" : "contained"}
+              onClick={handleReset}
+              disabled={selectedPlayer === undefined}
+              color="secondary"
+              sx={{ marginTop: 3 }}
+            >
+              Reset
+            </Button>
+          </Box>
 
-          {showButtons && (
-            <>
-              <br />
-              <Button
-                variant="outlined"
-                style={{ margin: "10px" }}
-                onClick={handleCopyPrompt}
-              >
-                Copy Prompt
-              </Button>
-              <Button
-                variant="outlined"
-                style={{ margin: "10px" }}
-                onClick={handleCopySummaryInfo}
-              >
-                Copy Play Summary
-              </Button>
-            </>
-          )}
           <Snackbar
             open={!!notification}
             autoHideDuration={3000}
@@ -283,7 +392,8 @@ function App() {
             message={notification}
           />
         </Container>
-      </BackgroundBox>
+      )}
+      {/* </BackgroundBox> */}
     </ThemeProvider>
   );
 }

@@ -81,7 +81,8 @@ def extract_replay_data(replay_file) -> ReplayData:
     return replay_info
 
 def summarise_replay_data(data: ReplayData) -> SummarisedData:
-    filtered_commands =  [command for command in data["commands"] if command["ability_name"] != "RightClick"] 
+    excluded_abilities = ["RightClick", "SetWorkerRally", "Stop", "SetRallyPoint", "LowerSupplyDepot", "RaiseSupplyDepot", "HoldPosition", "CancelSlot", "SiegeMode"]
+    filtered_commands =  [command for command in data["commands"] if command["ability_name"] not in excluded_abilities] 
     retval = SummarisedData(
         map=data["map"],
         players=data["players"],
