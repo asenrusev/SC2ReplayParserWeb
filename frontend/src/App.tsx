@@ -350,7 +350,7 @@ function App() {
                     id="player-select-label"
                     sx={{ color: response ? "primary.main" : "darkgrey" }}
                   >
-                    Who are you?
+                    Which one are you?
                   </InputLabel>
                   <Select
                     labelId="player-select-label"
@@ -398,6 +398,17 @@ function App() {
                 >
                   Copy Prompt
                 </Button>
+                <br />
+                <Typography
+                  variant="caption"
+                  color={
+                    selectedPlayer === undefined
+                      ? "textSecondary"
+                      : "textPrimary"
+                  }
+                >
+                  You can now copy and use your favourite LLM
+                </Typography>
                 <br />
                 <Button
                   variant={
